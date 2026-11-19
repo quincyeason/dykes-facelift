@@ -469,7 +469,6 @@
       function clamp(v) { return Math.max(0, Math.min(100, v)); }
 
       function setupCompare(compare, range) {
-        var touched = false;
         var dragging = false;
 
         function setPos(pct) {
@@ -481,7 +480,6 @@
         setPos(50);
 
         range.addEventListener("input", function () {
-          touched = true;
           setPos(parseFloat(range.value));
         });
 
@@ -491,7 +489,6 @@
         }
 
         compare.addEventListener("pointerdown", function (e) {
-          touched = true;
           dragging = true;
           compare.classList.add("dragging");
           try { compare.setPointerCapture(e.pointerId); } catch (err) {}
@@ -509,46 +506,6 @@
         }
         compare.addEventListener("pointerup", endDrag);
         compare.addEventListener("pointercancel", endDrag);
-
-        // Gentle one-time sweep the first time a pair scrolls into view,
-        // so the wipe reads instantly — skipped if the visitor already
-        // grabbed it, and skipped entirely for reduced motion.
-        var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        if (!reduce && "IntersectionObserver" in window) {
-          var seen = false;
-          var io = new IntersectionObserver(function (entries) {
-            entries.forEach(function (en) {
-              if (en.isIntersecting && !seen) {
-                seen = true;
-                io.disconnect();
-                if (touched) return;
-                animateSweep(compare, range, setPos, function () { return touched; });
-              }
-            });
-          }, { threshold: 0.45 });
-          io.observe(compare);
-        }
-      }
-
-      function animateSweep(compare, range, setPos, wasTouched) {
-        var start = null;
-        var DUR = 1500;
-        function frame(ts) {
-          if (wasTouched()) return;
-          if (!start) start = ts;
-          var t = Math.min(1, (ts - start) / DUR);
-          // 50 -> 82 -> 50 with an ease in-out
-          var eased = t < 0.5
-            ? 2 * t * t
-            : 1 - Math.pow(-2 * t + 2, 2) / 2;
-          var pos = t < 0.5
-            ? 50 + (82 - 50) * (eased * 2)
-            : 82 - (82 - 50) * ((eased - 0.5) * 2);
-          if (t >= 1) pos = 50;
-          setPos(pos);
-          if (t < 1) requestAnimationFrame(frame);
-        }
-        requestAnimationFrame(frame);
       }
     </script>
   </body>
